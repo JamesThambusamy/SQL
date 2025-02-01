@@ -1,0 +1,78 @@
+---we are going to solve a very important business use case where we need to find difference between 2 dates excluding weekends and public holidays  . Basically we need to find business days between 2 given dates using SQL. 
+--script:
+create table tickets
+(
+ticket_id varchar(10),
+create_date date,
+resolved_date date
+);
+delete from tickets;
+insert into tickets values
+(1,'2022-08-01','2022-08-03')
+,(2,'2022-08-01','2022-08-12')
+,(3,'2022-08-01','2022-08-16');
+create table holidays
+(
+holiday_date date
+,reason varchar(100)
+);
+delete from holidays;
+insert into holidays values
+('2022-08-02','Rakhi'),('2022-08-12','Independence day');
+
+-----------------
+
+select *,
+datediff(day,create_date,resolved_date) -2*datediff(week,create_date,resolved_date)-no_of_hoildays as business_days 
+from 
+
+(
+select ticket_id,create_date,resolved_date,count(holiday_date) as no_of_hoildays
+--datediff(day,create_date,resolved_date) -2*datediff(week,create_date,resolved_date)
+--datepart(week,create_date)
+--,datepart(week,resolved_date)
+--,datediff(day,create_date,resolved_date)
+
+from tickets as T
+left join holidays as H
+on H.holiday_date between T.create_date and T.resolved_date
+group by ticket_id,create_date,resolved_date) a;
+
+
+
+select * from holidays;
+
+
+select 
+ticket_id,create_date,resolved_date
+,datediff(day,create_date,resolved_date) as datediff
+,datediff(day,create_date,resolved_date) - 
+ 2*datediff(week,create_date,resolved_date) as weekdiff
+ ,datediff(day,create_date,resolved_date) - 
+ 2*datediff(week,create_date,resolved_date) -holiday as totaldays
+from 
+(
+select ticket_id,create_date,resolved_date,count(h.holiday_date) as holiday
+from tickets as t
+left join  holidays as h
+on h.holiday_date BETWEEN t.create_date and t.resolved_date
+group by ticket_id,create_date,resolved_date) a 
+
+
+------------------------------------------
+
+select ticket_id,create_date,resolved_date,
+datediff(day,create_date,resolved_date) - 2*DATEDIFF(WEEK,create_date,resolved_date)-count(holiday_date) as business_days
+from tickets
+left JOIN
+holidays
+on holiday_date between create_date and resolved_date
+and DATENAME(weekday,holiday_date) not in ('Saturday','Sunday')
+group by ticket_id,create_date,resolved_date;
+-------------------------------------
+
+
+select DATENAME(WEEKDAY,holiday_date)  from holidays
+where 
+--DATENAME(WEEKDAY,holiday_date) not in ('Saturday','Sunday')
+DATEPART(weekday,holiday_date) not in (1,7)
