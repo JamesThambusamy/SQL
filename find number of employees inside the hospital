@@ -1,0 +1,97 @@
+----we are going to discuss a SQL interview problem where we need to find number of employees inside the hospital. I will solve this problem with 3 methods:
+--script:
+create table hospital ( emp_id int
+, action varchar(10)
+, time datetime);
+
+insert into hospital values ('1', 'in', '2019-12-22 09:00:00');
+insert into hospital values ('1', 'out', '2019-12-22 09:15:00');
+insert into hospital values ('2', 'in', '2019-12-22 09:00:00');
+insert into hospital values ('2', 'out', '2019-12-22 09:15:00');
+insert into hospital values ('2', 'in', '2019-12-22 09:30:00');
+insert into hospital values ('3', 'out', '2019-12-22 09:00:00');
+insert into hospital values ('3', 'in', '2019-12-22 09:15:00');
+insert into hospital values ('3', 'out', '2019-12-22 09:30:00');
+insert into hospital values ('3', 'in', '2019-12-22 09:45:00');
+insert into hospital values ('4', 'in', '2019-12-22 09:45:00');
+insert into hospital values ('5', 'out', '2019-12-22 09:40:00');
+
+select * from hospital;
+----------------------------
+-----------sol 3
+with cte as 
+(select 
+emp_id, max(time) as max_lastest_time 
+from 
+hospital
+group by emp_id ),
+latest_in_time as (
+
+select 
+emp_id, max(time) as max_in_time 
+from 
+hospital
+where action ='in'
+group by emp_id)
+
+select * from cte
+inner join latest_in_time
+on cte.emp_id = latest_in_time.emp_id
+and cte.max_lastest_time = latest_in_time.max_in_time
+------------------------------------
+with cte as 
+(select 
+emp_id,
+max(case when action='in' then time end) as intime ,
+max(case when action='out' then time end) as outtime 
+
+from 
+hospital
+group by emp_id
+having max(case when action='in' then time end)  > max(case when action='out' then time end) 
+ or max(case when action='out' then time end)  is null
+
+
+)
+
+select * from cte;
+----------------------------
+with intime as 
+(select 
+emp_id,max(time) as latest_in_time
+from 
+hospital
+where [action]='in'
+group by emp_id),
+outtime as (
+
+select 
+emp_id,max(time) as latest_in_time
+from 
+hospital
+where [action]='out'
+group by emp_id
+
+
+)
+
+select * FROM intime 
+left join outtime on intime.emp_id=outtime.emp_id
+and intime.latest_in_time > outtime.latest_in_time
+-------------------
+-----------windows function 
+with cte as (select 
+*, rank() over(partition by emp_id order by time desc) rnk
+from 
+hospital
+)
+select * from cte where rnk=1 and [action]='in'
+
+
+with cte as (select 
+*, row_number() over(partition by emp_id order by time desc) rnk
+from 
+hospital
+)
+select * from cte where rnk=1 and [action]='in'
+
